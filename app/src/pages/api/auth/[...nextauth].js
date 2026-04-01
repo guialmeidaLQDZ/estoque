@@ -28,7 +28,11 @@ export default NextAuth({
     },
     async jwt({ token, user }) {
       if (user) {
-        token.role = (await isAdmin(user.email)) ? 'admin' : 'user'
+        try {
+          token.role = (await isAdmin(user.email)) ? 'admin' : 'user'
+        } catch {
+          token.role = 'user'
+        }
       }
       return token
     },
