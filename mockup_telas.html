@@ -1,0 +1,1966 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LIQUIDZ — Sistema de Gestão de Estoque</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #F8F6F3;
+    --accent: #9BDB20;
+    --accent-dark: #7CAF34;
+    --black: #000000;
+    --white: #FFFFFF;
+    --text: #111111;
+    --text-muted: #666666;
+    --border: #E5E2DD;
+    --success: #7CAF34;
+    --warning: #FCE300;
+    --error: #FA3A3D;
+    --info: #3A8DFA;
+    --sidebar-w: 220px;
+    --topbar-h: 64px;
+    --shadow: 0 1px 4px rgba(0,0,0,0.08), 0 4px 16px rgba(0,0,0,0.06);
+    --radius: 12px;
+  }
+
+  html, body {
+    font-family: 'Manrope', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    height: 100%;
+    font-size: 14px;
+    line-height: 1.5;
+  }
+
+  /* ─── LAYOUT ─── */
+  .app { display: flex; height: 100vh; overflow: hidden; }
+
+  /* ─── SIDEBAR ─── */
+  .sidebar {
+    width: var(--sidebar-w);
+    min-width: var(--sidebar-w);
+    background: var(--black);
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    overflow-y: auto;
+    position: fixed;
+    left: 0; top: 0; bottom: 0;
+    z-index: 100;
+  }
+
+  .sidebar-logo {
+    padding: 24px 20px 20px;
+    border-bottom: 1px solid #1a1a1a;
+  }
+  .sidebar-logo .logo-text {
+    font-size: 22px;
+    font-weight: 800;
+    color: var(--accent);
+    letter-spacing: -0.5px;
+  }
+  .sidebar-logo .logo-sub {
+    font-size: 10px;
+    color: #666;
+    font-weight: 500;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    margin-top: 2px;
+  }
+
+  .sidebar-section-label {
+    font-size: 10px;
+    font-weight: 700;
+    color: #444;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    padding: 20px 20px 8px;
+  }
+
+  .nav-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 11px 20px;
+    color: #888;
+    font-weight: 600;
+    font-size: 13.5px;
+    cursor: pointer;
+    border-left: 3px solid transparent;
+    transition: all 0.15s ease;
+    text-decoration: none;
+    user-select: none;
+  }
+  .nav-item:hover { color: #ccc; background: #111; }
+  .nav-item.active {
+    color: var(--accent);
+    background: #0d1a00;
+    border-left-color: var(--accent);
+  }
+  .nav-item .nav-icon { font-size: 16px; width: 20px; text-align: center; }
+
+  .sidebar-footer {
+    margin-top: auto;
+    padding: 16px 20px;
+    border-top: 1px solid #1a1a1a;
+    font-size: 12px;
+    color: #444;
+  }
+  .sidebar-footer span { display: block; }
+
+  /* ─── MAIN ─── */
+  .main {
+    margin-left: var(--sidebar-w);
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+    overflow-y: auto;
+  }
+
+  /* ─── TOPBAR ─── */
+  .topbar {
+    height: var(--topbar-h);
+    background: var(--white);
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 28px;
+    position: sticky;
+    top: 0;
+    z-index: 50;
+  }
+  .topbar-left { display: flex; align-items: center; gap: 12px; }
+  .topbar-title { font-size: 16px; font-weight: 700; color: var(--black); }
+  .topbar-breadcrumb { font-size: 13px; color: var(--text-muted); }
+  .topbar-right { display: flex; align-items: center; gap: 14px; }
+  .avatar {
+    width: 34px; height: 34px;
+    border-radius: 50%;
+    background: var(--accent);
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 800; font-size: 13px; color: var(--black);
+  }
+  .user-name { font-weight: 700; font-size: 13.5px; }
+  .btn-sair {
+    font-size: 12.5px; font-weight: 600;
+    color: var(--text-muted);
+    cursor: pointer;
+    padding: 6px 12px;
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    transition: all 0.15s;
+    background: none;
+    font-family: 'Manrope', sans-serif;
+  }
+  .btn-sair:hover { color: var(--error); border-color: var(--error); background: #fff0f0; }
+
+  /* ─── CONTENT ─── */
+  .content { padding: 28px; flex: 1; }
+  .screen { display: none; }
+  .screen.active { display: block; }
+
+  /* ─── PAGE HEADER ─── */
+  .page-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    margin-bottom: 24px;
+  }
+  .page-title { font-size: 24px; font-weight: 800; color: var(--black); }
+  .page-subtitle { font-size: 13.5px; color: var(--text-muted); margin-top: 3px; }
+
+  /* ─── BUTTONS ─── */
+  .btn {
+    display: inline-flex; align-items: center; gap: 7px;
+    padding: 9px 20px;
+    border-radius: 999px;
+    font-family: 'Manrope', sans-serif;
+    font-weight: 700;
+    font-size: 13.5px;
+    cursor: pointer;
+    border: 2px solid transparent;
+    transition: all 0.15s ease;
+    text-decoration: none;
+    white-space: nowrap;
+  }
+  .btn-primary { background: var(--accent); color: var(--black); border-color: var(--accent); }
+  .btn-primary:hover { background: #88c41c; border-color: #88c41c; transform: translateY(-1px); box-shadow: 0 4px 12px rgba(155,219,32,0.35); }
+  .btn-secondary { background: transparent; color: var(--black); border-color: var(--black); }
+  .btn-secondary:hover { background: var(--black); color: var(--white); }
+  .btn-danger { background: transparent; color: var(--error); border-color: var(--error); }
+  .btn-danger:hover { background: var(--error); color: var(--white); }
+  .btn-success { background: var(--success); color: var(--white); border-color: var(--success); }
+  .btn-success:hover { background: #6a9e2c; border-color: #6a9e2c; }
+  .btn-ghost { background: transparent; color: var(--text-muted); border-color: var(--border); }
+  .btn-ghost:hover { background: var(--bg); color: var(--text); }
+  .btn-sm { padding: 5px 14px; font-size: 12px; }
+  .btn-icon { padding: 8px 10px; }
+
+  /* ─── BADGES ─── */
+  .badge {
+    display: inline-flex; align-items: center;
+    padding: 3px 10px;
+    border-radius: 999px;
+    font-size: 11.5px;
+    font-weight: 700;
+    white-space: nowrap;
+  }
+  .badge-pendente { background: #FFF8D6; color: #9A7B00; }
+  .badge-aprovado { background: #E6F5D8; color: #3D6B1A; }
+  .badge-enviado { background: #D6EAFF; color: #1A5B9A; }
+  .badge-rejeitado { background: #FFE5E5; color: #9A1A1A; }
+  .badge-ativo { background: #E6F5D8; color: #3D6B1A; }
+  .badge-encerrado { background: #F0F0F0; color: #666; }
+  .badge-futuro { background: #FFF8D6; color: #9A7B00; }
+  .badge-processado { background: #E6F5D8; color: #3D6B1A; }
+  .badge-entrada { background: #E6F5D8; color: #3D6B1A; }
+  .badge-saida { background: #FFE5E5; color: #9A1A1A; }
+
+  /* ─── KPI CARDS ─── */
+  .kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
+    margin-bottom: 24px;
+  }
+  .kpi-card {
+    background: var(--white);
+    border-radius: var(--radius);
+    padding: 20px 22px;
+    box-shadow: var(--shadow);
+    border: 1px solid var(--border);
+  }
+  .kpi-card .kpi-label {
+    font-size: 12px; font-weight: 600;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    margin-bottom: 8px;
+  }
+  .kpi-card .kpi-value {
+    font-size: 30px; font-weight: 800;
+    color: var(--black);
+    line-height: 1;
+    margin-bottom: 6px;
+  }
+  .kpi-card .kpi-delta {
+    font-size: 12px; font-weight: 600;
+  }
+  .kpi-card .kpi-icon {
+    font-size: 22px; margin-bottom: 10px;
+  }
+  .delta-up { color: var(--success); }
+  .delta-down { color: var(--error); }
+  .delta-neutral { color: var(--text-muted); }
+
+  /* ─── CARDS ─── */
+  .card {
+    background: var(--white);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    border: 1px solid var(--border);
+    overflow: hidden;
+  }
+  .card-header {
+    padding: 18px 22px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .card-title { font-size: 15px; font-weight: 800; color: var(--black); }
+  .card-body { padding: 22px; }
+
+  /* ─── TABLES ─── */
+  .table-wrap { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; }
+  thead tr {
+    background: var(--black);
+    color: var(--white);
+  }
+  thead th {
+    padding: 12px 16px;
+    font-size: 11.5px;
+    font-weight: 700;
+    letter-spacing: 0.8px;
+    text-transform: uppercase;
+    text-align: left;
+    white-space: nowrap;
+  }
+  tbody tr {
+    border-bottom: 1px solid var(--border);
+    transition: background 0.1s;
+  }
+  tbody tr:nth-child(even) { background: var(--bg); }
+  tbody tr:hover { background: #EDF8CE !important; }
+  tbody td {
+    padding: 12px 16px;
+    font-size: 13.5px;
+    color: var(--text);
+    vertical-align: middle;
+  }
+  .td-muted { color: var(--text-muted); font-size: 12.5px; }
+  .td-bold { font-weight: 700; }
+  .td-mono { font-family: monospace; font-size: 12px; color: #444; }
+  .row-warn { background: #FFFBEB !important; }
+  .row-warn:hover { background: #FFF3C4 !important; }
+
+  /* ─── GRID 2 COL ─── */
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+  .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; }
+
+  /* ─── BAR CHART CSS ─── */
+  .bar-chart { display: flex; align-items: flex-end; gap: 14px; height: 100px; padding: 0 4px; }
+  .bar-group { display: flex; flex-direction: column; align-items: center; flex: 1; gap: 6px; }
+  .bar {
+    width: 100%;
+    background: var(--accent);
+    border-radius: 6px 6px 0 0;
+    transition: opacity 0.15s;
+    min-height: 4px;
+  }
+  .bar:hover { opacity: 0.8; }
+  .bar-label { font-size: 10.5px; font-weight: 600; color: var(--text-muted); text-align: center; }
+  .bar-value { font-size: 11px; font-weight: 800; color: var(--black); }
+
+  /* ─── ALERT ITEMS ─── */
+  .alert-item {
+    display: flex; align-items: center; gap: 12px;
+    padding: 12px 14px;
+    background: #FFF8ED;
+    border: 1px solid #FFE0A0;
+    border-radius: 8px;
+    margin-bottom: 8px;
+  }
+  .alert-item:last-child { margin-bottom: 0; }
+  .alert-icon { font-size: 18px; }
+  .alert-text { flex: 1; }
+  .alert-text strong { font-weight: 700; font-size: 13px; display: block; }
+  .alert-text span { font-size: 12px; color: #8A5500; }
+
+  /* ─── ACTIVITY FEED ─── */
+  .activity-item {
+    display: flex; gap: 12px;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--border);
+  }
+  .activity-item:last-child { border-bottom: none; }
+  .activity-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    margin-top: 5px;
+    flex-shrink: 0;
+  }
+  .dot-green { background: var(--success); }
+  .dot-red { background: var(--error); }
+  .dot-blue { background: var(--info); }
+  .dot-yellow { background: var(--warning); }
+  .activity-body { flex: 1; }
+  .activity-body strong { font-weight: 700; font-size: 13px; }
+  .activity-body span { font-size: 12px; color: var(--text-muted); display: block; margin-top: 1px; }
+  .activity-time { font-size: 11.5px; color: var(--text-muted); white-space: nowrap; margin-top: 3px; }
+
+  /* ─── FORM ELEMENTS ─── */
+  .form-group { margin-bottom: 18px; }
+  .form-label {
+    display: block;
+    font-size: 12.5px; font-weight: 700;
+    color: var(--text);
+    margin-bottom: 6px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  .form-control {
+    width: 100%;
+    padding: 10px 14px;
+    border: 1.5px solid var(--border);
+    border-radius: 8px;
+    font-family: 'Manrope', sans-serif;
+    font-size: 13.5px;
+    color: var(--text);
+    background: var(--white);
+    transition: border-color 0.15s;
+    outline: none;
+  }
+  .form-control:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(155,219,32,0.15); }
+  textarea.form-control { resize: vertical; min-height: 80px; }
+  select.form-control { cursor: pointer; }
+
+  .radio-group { display: flex; gap: 12px; }
+  .radio-option {
+    display: flex; align-items: center; gap: 8px;
+    padding: 10px 18px;
+    border: 1.5px solid var(--border);
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.15s;
+    font-weight: 600;
+    font-size: 13.5px;
+  }
+  .radio-option.selected {
+    border-color: var(--accent);
+    background: #F0FAD9;
+    color: var(--black);
+  }
+  .radio-option input[type="radio"] { accent-color: var(--accent); }
+
+  /* ─── FILTER TABS ─── */
+  .filter-tabs { display: flex; gap: 4px; margin-bottom: 18px; }
+  .tab-btn {
+    padding: 8px 18px;
+    border-radius: 999px;
+    border: 1.5px solid var(--border);
+    background: var(--white);
+    font-family: 'Manrope', sans-serif;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .tab-btn:hover { border-color: var(--accent); color: var(--black); }
+  .tab-btn.active { background: var(--black); color: var(--white); border-color: var(--black); }
+  .tab-count {
+    display: inline-flex; align-items: center; justify-content: center;
+    min-width: 18px; height: 18px;
+    background: var(--accent);
+    color: var(--black);
+    border-radius: 999px;
+    font-size: 10px;
+    font-weight: 800;
+    padding: 0 5px;
+    margin-left: 4px;
+  }
+
+  /* ─── SEARCH BAR ─── */
+  .search-bar-wrap { display: flex; gap: 10px; align-items: center; margin-bottom: 18px; }
+  .search-input-wrap { position: relative; flex: 1; max-width: 320px; }
+  .search-icon { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); font-size: 14px; color: var(--text-muted); }
+  .search-input {
+    width: 100%;
+    padding: 9px 14px 9px 36px;
+    border: 1.5px solid var(--border);
+    border-radius: 8px;
+    font-family: 'Manrope', sans-serif;
+    font-size: 13.5px;
+    background: var(--white);
+    outline: none;
+    transition: border-color 0.15s;
+  }
+  .search-input:focus { border-color: var(--accent); }
+
+  /* ─── PAGINATION ─── */
+  .pagination { display: flex; gap: 6px; align-items: center; justify-content: flex-end; margin-top: 16px; }
+  .page-btn {
+    width: 32px; height: 32px;
+    border-radius: 8px;
+    border: 1.5px solid var(--border);
+    background: var(--white);
+    font-family: 'Manrope', sans-serif;
+    font-weight: 700;
+    font-size: 13px;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    transition: all 0.15s;
+    color: var(--text);
+  }
+  .page-btn:hover { border-color: var(--accent); color: var(--accent); }
+  .page-btn.active { background: var(--black); color: var(--white); border-color: var(--black); }
+  .page-info { font-size: 12.5px; color: var(--text-muted); margin: 0 6px; }
+
+  /* ─── SPLIT VIEW ─── */
+  .split-view { display: grid; grid-template-columns: 340px 1fr; gap: 20px; }
+  .split-list { display: flex; flex-direction: column; gap: 10px; }
+  .split-item {
+    background: var(--white);
+    border-radius: 10px;
+    border: 2px solid var(--border);
+    padding: 14px 16px;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .split-item:hover { border-color: var(--accent); }
+  .split-item.active { border-color: var(--accent); background: #F5FBEA; }
+  .split-item-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 6px; }
+  .split-item-title { font-weight: 800; font-size: 13.5px; }
+  .split-item-meta { font-size: 12px; color: var(--text-muted); line-height: 1.6; }
+
+  /* ─── IMPACT INDICATOR ─── */
+  .impact { display: inline-flex; align-items: center; gap: 5px; font-weight: 700; font-size: 12.5px; }
+  .impact-ok { color: var(--success); }
+  .impact-warn { color: #C09000; }
+  .impact-crit { color: var(--error); }
+
+  /* ─── EVENT CARDS ─── */
+  .event-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; }
+  .event-card {
+    background: var(--white);
+    border-radius: var(--radius);
+    border: 1px solid var(--border);
+    box-shadow: var(--shadow);
+    overflow: hidden;
+    transition: transform 0.15s, box-shadow 0.15s;
+  }
+  .event-card:hover { transform: translateY(-2px); box-shadow: 0 6px 24px rgba(0,0,0,0.1); }
+  .event-card-banner {
+    height: 6px;
+  }
+  .banner-ativo { background: var(--success); }
+  .banner-futuro { background: var(--warning); }
+  .banner-encerrado { background: #CCC; }
+  .event-card-body { padding: 18px 20px; }
+  .event-name { font-size: 15px; font-weight: 800; margin-bottom: 4px; }
+  .event-meta { font-size: 12.5px; color: var(--text-muted); line-height: 1.7; }
+  .event-card-footer {
+    padding: 14px 20px;
+    border-top: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .event-footer-stat { font-size: 12px; color: var(--text-muted); font-weight: 600; }
+
+  /* ─── STOCK LEVEL BAR ─── */
+  .stock-mini { display: flex; align-items: center; gap: 8px; }
+  .stock-bar-bg { height: 6px; background: var(--border); border-radius: 3px; flex: 1; min-width: 60px; }
+  .stock-bar-fill { height: 100%; border-radius: 3px; }
+  .fill-high { background: var(--success); }
+  .fill-mid { background: var(--warning); }
+  .fill-low { background: var(--error); }
+  .stock-num { font-size: 12px; font-weight: 700; min-width: 28px; text-align: right; }
+
+  /* ─── SECTION DIVIDER ─── */
+  .mb16 { margin-bottom: 16px; }
+  .mb24 { margin-bottom: 24px; }
+  .mb8 { margin-bottom: 8px; }
+  .flex-row { display: flex; gap: 12px; align-items: center; }
+  .flex-end { justify-content: flex-end; }
+  .spacer { flex: 1; }
+
+  /* ─── DETAIL INFO GRID ─── */
+  .info-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 16px; }
+  .info-item { }
+  .info-item-label { font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 3px; }
+  .info-item-value { font-size: 13.5px; font-weight: 700; color: var(--black); }
+
+  /* ─── FILTER ROW ─── */
+  .filter-row { display: flex; gap: 10px; align-items: center; margin-bottom: 18px; flex-wrap: wrap; }
+  .filter-select {
+    padding: 8px 12px;
+    border: 1.5px solid var(--border);
+    border-radius: 8px;
+    font-family: 'Manrope', sans-serif;
+    font-size: 13px;
+    font-weight: 600;
+    background: var(--white);
+    cursor: pointer;
+    outline: none;
+    color: var(--text);
+    transition: border-color 0.15s;
+  }
+  .filter-select:focus { border-color: var(--accent); }
+  .date-input {
+    padding: 8px 12px;
+    border: 1.5px solid var(--border);
+    border-radius: 8px;
+    font-family: 'Manrope', sans-serif;
+    font-size: 13px;
+    background: var(--white);
+    outline: none;
+    color: var(--text);
+    transition: border-color 0.15s;
+  }
+  .date-input:focus { border-color: var(--accent); }
+
+  /* ─── EMPTY STATE ─── */
+  .empty-state { text-align: center; padding: 48px 24px; }
+  .empty-state .empty-icon { font-size: 40px; margin-bottom: 12px; }
+  .empty-state p { color: var(--text-muted); font-size: 14px; }
+
+  /* ─── SCROLLBAR ─── */
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: #DDD; border-radius: 3px; }
+  ::-webkit-scrollbar-thumb:hover { background: #BBB; }
+
+  /* ─── NOTIFICATION DOT ─── */
+  .notif-badge {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 16px; height: 16px;
+    background: var(--error);
+    color: white;
+    font-size: 9px;
+    font-weight: 800;
+    border-radius: 50%;
+    margin-left: 4px;
+    vertical-align: middle;
+  }
+
+  /* ─── TOOLTIP-LIKE SUB ─── */
+  .sub-note {
+    font-size: 11.5px;
+    color: var(--text-muted);
+    margin-top: 2px;
+  }
+
+  /* ─── FINANCEIRO SUMMARY ─── */
+  .fin-summary { display: grid; grid-template-columns: repeat(3,1fr); gap: 16px; margin-bottom: 24px; }
+  .fin-card {
+    background: var(--white);
+    border-radius: var(--radius);
+    border: 1px solid var(--border);
+    box-shadow: var(--shadow);
+    padding: 20px 22px;
+  }
+  .fin-card-label { font-size: 11.5px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 8px; }
+  .fin-card-value { font-size: 28px; font-weight: 800; color: var(--black); }
+  .fin-card-note { font-size: 12px; color: var(--text-muted); margin-top: 4px; }
+
+</style>
+</head>
+<body>
+<div class="app">
+
+  <!-- ══════════ SIDEBAR ══════════ -->
+  <nav class="sidebar">
+    <div class="sidebar-logo">
+      <div class="logo-text">LIQUIDZ</div>
+      <div class="logo-sub">Gestão de Estoque</div>
+    </div>
+
+    <div class="sidebar-section-label">Menu Principal</div>
+
+    <div class="nav-item active" onclick="showScreen('dashboard', this)">
+      <span class="nav-icon">📊</span> Dashboard
+    </div>
+    <div class="nav-item" onclick="showScreen('nova-solicitacao', this)">
+      <span class="nav-icon">✏️</span> Nova Solicitação
+    </div>
+    <div class="nav-item" onclick="showScreen('solicitacoes', this)">
+      <span class="nav-icon">📋</span> Solicitações <span class="notif-badge">3</span>
+    </div>
+    <div class="nav-item" onclick="showScreen('aprovacao', this)">
+      <span class="nav-icon">✅</span> Aprovação <span class="notif-badge">3</span>
+    </div>
+
+    <div class="sidebar-section-label">Estoque</div>
+
+    <div class="nav-item" onclick="showScreen('estoque', this)">
+      <span class="nav-icon">📦</span> Base de Produtos
+    </div>
+    <div class="nav-item" onclick="showScreen('eventos', this)">
+      <span class="nav-icon">🎯</span> Eventos
+    </div>
+    <div class="nav-item" onclick="showScreen('historico', this)">
+      <span class="nav-icon">🕑</span> Histórico
+    </div>
+
+    <div class="sidebar-section-label">Financeiro</div>
+
+    <div class="nav-item" onclick="showScreen('financeiro', this)">
+      <span class="nav-icon">💰</span> NF / Financeiro
+    </div>
+
+    <div class="sidebar-footer">
+      <span>v2.0.0 — Beta</span>
+      <span style="margin-top:4px;">© 2025 LIQUIDZ</span>
+    </div>
+  </nav>
+
+  <!-- ══════════ MAIN ══════════ -->
+  <div class="main">
+
+    <!-- TOP BAR -->
+    <div class="topbar">
+      <div class="topbar-left">
+        <span id="topbar-title" class="topbar-title">Dashboard</span>
+        <span id="topbar-crumb" class="topbar-breadcrumb"></span>
+      </div>
+      <div class="topbar-right">
+        <div class="avatar">GA</div>
+        <span class="user-name">Guilherme</span>
+        <button class="btn-sair">↪ Sair</button>
+      </div>
+    </div>
+
+    <!-- ══════════ CONTEÚDO ══════════ -->
+    <div class="content">
+
+      <!-- ═══════ 1. DASHBOARD ═══════ -->
+      <div id="screen-dashboard" class="screen active">
+        <div class="page-header">
+          <div>
+            <div class="page-title">Dashboard</div>
+            <div class="page-subtitle">Visão geral do estoque — 31 de março de 2026</div>
+          </div>
+          <div class="flex-row">
+            <button class="btn btn-ghost btn-sm">⬇ Exportar</button>
+            <button class="btn btn-primary btn-sm">+ Nova Solicitação</button>
+          </div>
+        </div>
+
+        <!-- KPI Cards -->
+        <div class="kpi-grid">
+          <div class="kpi-card">
+            <div class="kpi-icon">📦</div>
+            <div class="kpi-label">Total de SKUs</div>
+            <div class="kpi-value">47</div>
+            <div class="kpi-delta delta-up">↑ 3 novos este mês</div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-icon">🔄</div>
+            <div class="kpi-label">Movimentações Hoje</div>
+            <div class="kpi-value">12</div>
+            <div class="kpi-delta delta-neutral">→ 8 entradas · 4 saídas</div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-icon">⏳</div>
+            <div class="kpi-label">Pendentes de Aprovação</div>
+            <div class="kpi-value">3</div>
+            <div class="kpi-delta delta-down">↑ 2 novas hoje</div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-icon">🎯</div>
+            <div class="kpi-label">Eventos Ativos</div>
+            <div class="kpi-value">2</div>
+            <div class="kpi-delta delta-up">↑ 1 iniciado hoje</div>
+          </div>
+        </div>
+
+        <div class="grid-2 mb24">
+          <!-- Saldo por CD -->
+          <div class="card">
+            <div class="card-header">
+              <span class="card-title">Saldo por CD</span>
+              <span class="badge badge-aprovado">Atualizado agora</span>
+            </div>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>CD</th>
+                    <th>Estoque</th>
+                    <th>Última Atualização</th>
+                    <th>Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td class="td-bold">🏢 Escritório</td>
+                    <td>
+                      <div class="stock-mini">
+                        <div class="stock-bar-bg"><div class="stock-bar-fill fill-high" style="width:85%"></div></div>
+                        <span class="stock-num">1.240</span>
+                      </div>
+                    </td>
+                    <td class="td-muted">Hoje, 14:32</td>
+                    <td><span class="badge badge-aprovado">Normal</span></td>
+                  </tr>
+                  <tr>
+                    <td class="td-bold">🌊 Rio</td>
+                    <td>
+                      <div class="stock-mini">
+                        <div class="stock-bar-bg"><div class="stock-bar-fill fill-high" style="width:70%"></div></div>
+                        <span class="stock-num">980</span>
+                      </div>
+                    </td>
+                    <td class="td-muted">Hoje, 13:10</td>
+                    <td><span class="badge badge-aprovado">Normal</span></td>
+                  </tr>
+                  <tr>
+                    <td class="td-bold">🎪 Galpão Eventos</td>
+                    <td>
+                      <div class="stock-mini">
+                        <div class="stock-bar-bg"><div class="stock-bar-fill fill-mid" style="width:28%"></div></div>
+                        <span class="stock-num">340</span>
+                      </div>
+                    </td>
+                    <td class="td-muted">Hoje, 11:55</td>
+                    <td><span class="badge badge-pendente">Atenção</span></td>
+                  </tr>
+                  <tr>
+                    <td class="td-bold">🏬 Galpão Varejo</td>
+                    <td>
+                      <div class="stock-mini">
+                        <div class="stock-bar-bg"><div class="stock-bar-fill fill-high" style="width:60%"></div></div>
+                        <span class="stock-num">870</span>
+                      </div>
+                    </td>
+                    <td class="td-muted">Ontem, 18:00</td>
+                    <td><span class="badge badge-aprovado">Normal</span></td>
+                  </tr>
+                  <tr>
+                    <td class="td-bold">🛍️ Rio Varejo</td>
+                    <td>
+                      <div class="stock-mini">
+                        <div class="stock-bar-bg"><div class="stock-bar-fill fill-low" style="width:12%"></div></div>
+                        <span class="stock-num">95</span>
+                      </div>
+                    </td>
+                    <td class="td-muted">Ontem, 16:30</td>
+                    <td><span class="badge badge-rejeitado">Crítico</span></td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- Bar Chart -->
+          <div class="card">
+            <div class="card-header">
+              <span class="card-title">Estoque por CD — Gráfico</span>
+              <select class="filter-select" style="font-size:12px;padding:5px 10px;">
+                <option>Todos os SKUs</option>
+                <option>Hydra Limão</option>
+                <option>Hydra Morango</option>
+              </select>
+            </div>
+            <div class="card-body">
+              <div class="bar-chart">
+                <div class="bar-group">
+                  <div class="bar-value">1.240</div>
+                  <div class="bar" style="height:85px;background:var(--accent);"></div>
+                  <div class="bar-label">Escritório</div>
+                </div>
+                <div class="bar-group">
+                  <div class="bar-value">980</div>
+                  <div class="bar" style="height:67px;background:var(--accent);"></div>
+                  <div class="bar-label">Rio</div>
+                </div>
+                <div class="bar-group">
+                  <div class="bar-value">340</div>
+                  <div class="bar" style="height:23px;background:#FCE300;"></div>
+                  <div class="bar-label">Galp. Eventos</div>
+                </div>
+                <div class="bar-group">
+                  <div class="bar-value">870</div>
+                  <div class="bar" style="height:59px;background:var(--accent);"></div>
+                  <div class="bar-label">Galp. Varejo</div>
+                </div>
+                <div class="bar-group">
+                  <div class="bar-value">95</div>
+                  <div class="bar" style="height:7px;background:#FA3A3D;"></div>
+                  <div class="bar-label">Rio Varejo</div>
+                </div>
+              </div>
+              <div style="margin-top:16px;display:flex;gap:16px;font-size:12px;font-weight:600;">
+                <span style="display:flex;align-items:center;gap:5px;"><span style="width:10px;height:10px;border-radius:2px;background:var(--success);display:inline-block"></span>Normal (>40%)</span>
+                <span style="display:flex;align-items:center;gap:5px;"><span style="width:10px;height:10px;border-radius:2px;background:#FCE300;display:inline-block"></span>Atenção (20–40%)</span>
+                <span style="display:flex;align-items:center;gap:5px;"><span style="width:10px;height:10px;border-radius:2px;background:var(--error);display:inline-block"></span>Crítico (&lt;20%)</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="grid-2">
+          <!-- Alertas -->
+          <div class="card">
+            <div class="card-header">
+              <span class="card-title">⚠️ Alertas de Estoque Baixo</span>
+              <span class="badge badge-rejeitado">3 itens</span>
+            </div>
+            <div class="card-body">
+              <div class="alert-item">
+                <span class="alert-icon">🔴</span>
+                <div class="alert-text">
+                  <strong>Hydra Morango 350ml — Rio Varejo</strong>
+                  <span>Apenas 18 unidades restantes · Mínimo: 50 un.</span>
+                </div>
+                <button class="btn btn-sm btn-primary">Solicitar</button>
+              </div>
+              <div class="alert-item">
+                <span class="alert-icon">🟡</span>
+                <div class="alert-text">
+                  <strong>Isotônico Caju 500ml — Galpão Eventos</strong>
+                  <span>42 unidades restantes · Mínimo: 80 un.</span>
+                </div>
+                <button class="btn btn-sm btn-secondary">Solicitar</button>
+              </div>
+              <div class="alert-item">
+                <span class="alert-icon">🔴</span>
+                <div class="alert-text">
+                  <strong>Hydra Limão 500ml — Rio Varejo</strong>
+                  <span>12 unidades restantes · Mínimo: 60 un.</span>
+                </div>
+                <button class="btn btn-sm btn-primary">Solicitar</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Atividade Recente -->
+          <div class="card">
+            <div class="card-header">
+              <span class="card-title">Atividade Recente</span>
+              <a style="font-size:12.5px;font-weight:600;color:var(--accent);cursor:pointer;text-decoration:none;">Ver todas →</a>
+            </div>
+            <div class="card-body" style="padding-top:8px;">
+              <div class="activity-item">
+                <div class="activity-dot dot-green"></div>
+                <div class="activity-body">
+                  <strong>Entrada — Hydra Limão 500ml (+144 un.)</strong>
+                  <span>Escritório · por Nathália Ferraz</span>
+                </div>
+                <div class="activity-time">14:45</div>
+              </div>
+              <div class="activity-item">
+                <div class="activity-dot dot-red"></div>
+                <div class="activity-body">
+                  <strong>Saída — Isotônico Caju 500ml (−60 un.)</strong>
+                  <span>Galpão Eventos · Evento FitExpo SP</span>
+                </div>
+                <div class="activity-time">13:20</div>
+              </div>
+              <div class="activity-item">
+                <div class="activity-dot dot-blue"></div>
+                <div class="activity-body">
+                  <strong>Solicitação #SOL-089 aprovada</strong>
+                  <span>Isabela Rocha · Rio Varejo</span>
+                </div>
+                <div class="activity-time">12:55</div>
+              </div>
+              <div class="activity-item">
+                <div class="activity-dot dot-yellow"></div>
+                <div class="activity-body">
+                  <strong>Novo evento criado — Rock in Rio 2026</strong>
+                  <span>Galpão Eventos · Início em 05/04</span>
+                </div>
+                <div class="activity-time">11:10</div>
+              </div>
+              <div class="activity-item">
+                <div class="activity-dot dot-green"></div>
+                <div class="activity-body">
+                  <strong>Entrada — Hydra Morango 350ml (+96 un.)</strong>
+                  <span>Rio · por Guilherme Almeida</span>
+                </div>
+                <div class="activity-time">09:30</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ═══════ 2. NOVA SOLICITAÇÃO ═══════ -->
+      <div id="screen-nova-solicitacao" class="screen">
+        <div class="page-header">
+          <div>
+            <div class="page-title">Nova Solicitação</div>
+            <div class="page-subtitle">Preencha os dados para criar uma movimentação de estoque</div>
+          </div>
+          <div class="flex-row">
+            <button class="btn btn-ghost btn-sm">Cancelar</button>
+          </div>
+        </div>
+
+        <div class="grid-2" style="align-items:start;">
+          <!-- Formulário Principal -->
+          <div class="card">
+            <div class="card-header"><span class="card-title">Dados da Solicitação</span></div>
+            <div class="card-body">
+              <div class="form-group">
+                <label class="form-label">Tipo de Movimentação</label>
+                <div class="radio-group">
+                  <label class="radio-option selected">
+                    <input type="radio" name="tipo" checked> ↑ Entrada
+                  </label>
+                  <label class="radio-option" onclick="this.classList.add('selected');this.parentNode.querySelectorAll('.radio-option').forEach(o=>o!==this&&o.classList.remove('selected'))">
+                    <input type="radio" name="tipo"> ↓ Saída
+                  </label>
+                </div>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label">CD Destino</label>
+                <select class="form-control">
+                  <option value="">Selecione um CD...</option>
+                  <option>🏢 Escritório</option>
+                  <option>🌊 Rio</option>
+                  <option>🎪 Galpão Eventos</option>
+                  <option selected>🏬 Galpão Varejo</option>
+                  <option>🛍️ Rio Varejo</option>
+                </select>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label">Evento <span style="color:var(--text-muted);font-weight:400;">(opcional)</span></label>
+                <select class="form-control">
+                  <option value="">Nenhum evento vinculado</option>
+                  <option>🎵 Rock in Rio 2026 — Abr/2026</option>
+                  <option selected>💪 FitExpo SP — Mar/2026</option>
+                  <option>⚽ Final Libertadores 2026 — Jun/2026</option>
+                </select>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label">Justificativa</label>
+                <textarea class="form-control" placeholder="Descreva o motivo da movimentação...">Reposição de estoque para evento FitExpo SP — demanda estimada de 500 unidades nos próximos 3 dias.</textarea>
+              </div>
+            </div>
+          </div>
+
+          <!-- Resumo Rápido -->
+          <div style="display:flex;flex-direction:column;gap:16px;">
+            <div class="card">
+              <div class="card-header"><span class="card-title">Solicitante</span></div>
+              <div class="card-body">
+                <div style="display:flex;align-items:center;gap:12px;">
+                  <div class="avatar" style="width:42px;height:42px;font-size:15px;">GA</div>
+                  <div>
+                    <div style="font-weight:800;font-size:14px;">Guilherme Almeida</div>
+                    <div style="font-size:12.5px;color:var(--text-muted);">guilherme.almeida@liquidz.com.br</div>
+                    <div style="font-size:12px;margin-top:3px;"><span class="badge badge-aprovado">Gerente de Estoque</span></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="card" style="border:2px solid var(--accent);">
+              <div class="card-header" style="background:#F5FBEA;">
+                <span class="card-title">Resumo</span>
+                <span class="badge badge-aprovado">Entrada</span>
+              </div>
+              <div class="card-body">
+                <div class="info-grid" style="grid-template-columns:1fr 1fr;">
+                  <div class="info-item">
+                    <div class="info-item-label">CD</div>
+                    <div class="info-item-value">Galpão Varejo</div>
+                  </div>
+                  <div class="info-item">
+                    <div class="info-item-label">Evento</div>
+                    <div class="info-item-value">FitExpo SP</div>
+                  </div>
+                  <div class="info-item">
+                    <div class="info-item-label">Total de Itens</div>
+                    <div class="info-item-value">1 SKU</div>
+                  </div>
+                  <div class="info-item">
+                    <div class="info-item-label">Total de Unidades</div>
+                    <div class="info-item-value">24 un.</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Tabela de Itens -->
+        <div class="card" style="margin-top:20px;">
+          <div class="card-header">
+            <span class="card-title">Itens da Solicitação</span>
+            <button class="btn btn-sm btn-secondary">+ Adicionar Item</button>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>SKU</th>
+                  <th>Produto</th>
+                  <th>Estoque Atual</th>
+                  <th>Quantidade</th>
+                  <th>Impacto</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td class="td-mono">LQZ-001</td>
+                  <td class="td-bold">Hydra Limão 500ml</td>
+                  <td>
+                    <div class="stock-mini">
+                      <div class="stock-bar-bg"><div class="stock-bar-fill fill-high" style="width:72%"></div></div>
+                      <span class="stock-num">870</span>
+                    </div>
+                  </td>
+                  <td>
+                    <div style="display:flex;align-items:center;gap:6px;">
+                      <button style="width:26px;height:26px;border-radius:50%;border:1.5px solid var(--border);background:var(--white);cursor:pointer;font-size:14px;font-weight:700;display:flex;align-items:center;justify-content:center;">−</button>
+                      <input type="number" value="24" min="1" style="width:60px;text-align:center;padding:5px;border:1.5px solid var(--accent);border-radius:6px;font-family:'Manrope',sans-serif;font-weight:700;font-size:13px;">
+                      <button style="width:26px;height:26px;border-radius:50%;border:1.5px solid var(--accent);background:var(--accent);cursor:pointer;font-size:14px;font-weight:700;display:flex;align-items:center;justify-content:center;">+</button>
+                    </div>
+                  </td>
+                  <td><span class="impact impact-ok">🟢 +24 → 894</span></td>
+                  <td><button class="btn btn-sm btn-danger" style="padding:4px 10px;">✕</button></td>
+                </tr>
+                <tr style="opacity:0.5;background:#FAFAFA;">
+                  <td colspan="6" style="text-align:center;padding:14px;font-size:13px;color:var(--text-muted);">
+                    <span>+ Clique em "Adicionar Item" para incluir mais produtos</span>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <div style="padding:18px 22px;border-top:1px solid var(--border);display:flex;justify-content:flex-end;gap:12px;">
+            <button class="btn btn-ghost">Cancelar</button>
+            <button class="btn btn-primary">Enviar Solicitação →</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ═══════ 3. LISTA DE SOLICITAÇÕES ═══════ -->
+      <div id="screen-solicitacoes" class="screen">
+        <div class="page-header">
+          <div>
+            <div class="page-title">Solicitações</div>
+            <div class="page-subtitle">Histórico e acompanhamento de todas as solicitações</div>
+          </div>
+          <div class="flex-row">
+            <button class="btn btn-ghost btn-sm">⬇ Exportar</button>
+            <button class="btn btn-primary btn-sm">+ Nova Solicitação</button>
+          </div>
+        </div>
+
+        <div class="filter-tabs">
+          <button class="tab-btn active">Todas <span class="tab-count" style="background:var(--accent);">14</span></button>
+          <button class="tab-btn" onclick="setActiveTab(this)">Pendentes <span class="tab-count">3</span></button>
+          <button class="tab-btn" onclick="setActiveTab(this)">Aprovadas <span class="tab-count">6</span></button>
+          <button class="tab-btn" onclick="setActiveTab(this)">Enviadas <span class="tab-count">4</span></button>
+          <button class="tab-btn" onclick="setActiveTab(this)">Rejeitadas <span class="tab-count">1</span></button>
+        </div>
+
+        <div class="search-bar-wrap">
+          <div class="search-input-wrap">
+            <span class="search-icon">🔍</span>
+            <input class="search-input" type="text" placeholder="Buscar por #, evento, produto...">
+          </div>
+          <select class="filter-select">
+            <option>Todos os CDs</option>
+            <option>Escritório</option>
+            <option>Rio</option>
+            <option>Galpão Eventos</option>
+            <option>Galpão Varejo</option>
+            <option>Rio Varejo</option>
+          </select>
+          <select class="filter-select">
+            <option>Todas as datas</option>
+            <option>Hoje</option>
+            <option>Última semana</option>
+            <option>Último mês</option>
+          </select>
+        </div>
+
+        <div class="card">
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th>Data</th>
+                  <th>Solicitante</th>
+                  <th>CD</th>
+                  <th>Evento</th>
+                  <th>Itens</th>
+                  <th>Status</th>
+                  <th>Ações</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td class="td-mono td-bold">SOL-092</td>
+                  <td class="td-muted">31/03/2026 14:10</td>
+                  <td class="td-bold">Guilherme Almeida</td>
+                  <td>Galpão Varejo</td>
+                  <td>FitExpo SP</td>
+                  <td style="text-align:center;">1</td>
+                  <td><span class="badge badge-pendente">PENDENTE</span></td>
+                  <td><div class="flex-row"><button class="btn btn-sm btn-ghost">Ver</button><button class="btn btn-sm btn-primary">Aprovar</button></div></td>
+                </tr>
+                <tr>
+                  <td class="td-mono td-bold">SOL-091</td>
+                  <td class="td-muted">31/03/2026 11:30</td>
+                  <td class="td-bold">Nathália Ferraz</td>
+                  <td>Rio Varejo</td>
+                  <td>—</td>
+                  <td style="text-align:center;">3</td>
+                  <td><span class="badge badge-pendente">PENDENTE</span></td>
+                  <td><div class="flex-row"><button class="btn btn-sm btn-ghost">Ver</button><button class="btn btn-sm btn-primary">Aprovar</button></div></td>
+                </tr>
+                <tr>
+                  <td class="td-mono td-bold">SOL-090</td>
+                  <td class="td-muted">30/03/2026 17:45</td>
+                  <td class="td-bold">Isabela Rocha</td>
+                  <td>Galpão Eventos</td>
+                  <td>Rock in Rio 2026</td>
+                  <td style="text-align:center;">5</td>
+                  <td><span class="badge badge-aprovado">APROVADO</span></td>
+                  <td><div class="flex-row"><button class="btn btn-sm btn-ghost">Ver</button><button class="btn btn-sm btn-success">Enviado</button></div></td>
+                </tr>
+                <tr>
+                  <td class="td-mono td-bold">SOL-089</td>
+                  <td class="td-muted">30/03/2026 09:15</td>
+                  <td class="td-bold">Guilherme Almeida</td>
+                  <td>Rio</td>
+                  <td>—</td>
+                  <td style="text-align:center;">2</td>
+                  <td><span class="badge badge-enviado">ENVIADO</span></td>
+                  <td><div class="flex-row"><button class="btn btn-sm btn-ghost">Ver</button></div></td>
+                </tr>
+                <tr>
+                  <td class="td-mono td-bold">SOL-088</td>
+                  <td class="td-muted">29/03/2026 16:00</td>
+                  <td class="td-bold">Nathália Ferraz</td>
+                  <td>Escritório</td>
+                  <td>—</td>
+                  <td style="text-align:center;">4</td>
+                  <td><span class="badge badge-enviado">ENVIADO</span></td>
+                  <td><div class="flex-row"><button class="btn btn-sm btn-ghost">Ver</button></div></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <div style="padding:16px 22px;border-top:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;">
+            <span style="font-size:12.5px;color:var(--text-muted);">Mostrando 5 de 14 solicitações</span>
+            <div class="pagination">
+              <button class="page-btn">‹</button>
+              <button class="page-btn active">1</button>
+              <button class="page-btn">2</button>
+              <button class="page-btn">3</button>
+              <span class="page-info">...</span>
+              <button class="page-btn">›</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ═══════ 4. APROVAÇÃO ═══════ -->
+      <div id="screen-aprovacao" class="screen">
+        <div class="page-header">
+          <div>
+            <div class="page-title">Aprovação de Solicitações</div>
+            <div class="page-subtitle">3 solicitações aguardando sua revisão</div>
+          </div>
+        </div>
+
+        <div class="split-view">
+          <!-- Lista de Pendentes -->
+          <div>
+            <div style="font-size:12px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:10px;">Pendentes</div>
+            <div class="split-list">
+
+              <div class="split-item active">
+                <div class="split-item-header">
+                  <span class="split-item-title">SOL-092</span>
+                  <span class="badge badge-pendente">PENDENTE</span>
+                </div>
+                <div class="split-item-meta">
+                  👤 Guilherme Almeida<br>
+                  📍 Galpão Varejo · 🎯 FitExpo SP<br>
+                  📅 31/03/2026 14:10 · 1 item
+                </div>
+              </div>
+
+              <div class="split-item">
+                <div class="split-item-header">
+                  <span class="split-item-title">SOL-091</span>
+                  <span class="badge badge-pendente">PENDENTE</span>
+                </div>
+                <div class="split-item-meta">
+                  👤 Nathália Ferraz<br>
+                  📍 Rio Varejo · 🎯 Sem evento<br>
+                  📅 31/03/2026 11:30 · 3 itens
+                </div>
+              </div>
+
+              <div class="split-item">
+                <div class="split-item-header">
+                  <span class="split-item-title">SOL-088</span>
+                  <span class="badge badge-pendente">PENDENTE</span>
+                </div>
+                <div class="split-item-meta">
+                  👤 Isabela Rocha<br>
+                  📍 Escritório · 🎯 Rock in Rio 2026<br>
+                  📅 29/03/2026 09:00 · 4 itens
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Painel de Detalhe -->
+          <div class="card">
+            <div class="card-header" style="background:#F5FBEA;border-bottom:2px solid var(--accent);">
+              <div>
+                <div class="card-title" style="font-size:17px;">SOL-092 — Detalhe</div>
+                <div style="font-size:12.5px;color:var(--text-muted);margin-top:2px;">Criada em 31/03/2026 às 14:10</div>
+              </div>
+              <span class="badge badge-pendente" style="font-size:13px;padding:5px 14px;">PENDENTE</span>
+            </div>
+
+            <div class="card-body">
+              <div class="info-grid" style="margin-bottom:18px;">
+                <div class="info-item">
+                  <div class="info-item-label">Solicitante</div>
+                  <div class="info-item-value">Guilherme Almeida</div>
+                </div>
+                <div class="info-item">
+                  <div class="info-item-label">CD Destino</div>
+                  <div class="info-item-value">🏬 Galpão Varejo</div>
+                </div>
+                <div class="info-item">
+                  <div class="info-item-label">Evento</div>
+                  <div class="info-item-value">💪 FitExpo SP</div>
+                </div>
+                <div class="info-item">
+                  <div class="info-item-label">Tipo</div>
+                  <div class="info-item-value"><span class="badge badge-entrada">↑ ENTRADA</span></div>
+                </div>
+                <div class="info-item">
+                  <div class="info-item-label">Total de Itens</div>
+                  <div class="info-item-value">1 SKU · 24 un.</div>
+                </div>
+                <div class="info-item">
+                  <div class="info-item-label">Prioridade</div>
+                  <div class="info-item-value" style="color:var(--warning);">⚡ Alta</div>
+                </div>
+              </div>
+
+              <div style="background:var(--bg);border-radius:8px;padding:14px;margin-bottom:18px;border-left:4px solid var(--accent);">
+                <div style="font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:5px;">Justificativa do Solicitante</div>
+                <div style="font-size:13.5px;color:var(--text);">Reposição de estoque para evento FitExpo SP — demanda estimada de 500 unidades nos próximos 3 dias. Estoque atual insuficiente para o volume esperado de participantes.</div>
+              </div>
+
+              <div class="table-wrap">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>SKU</th>
+                      <th>Produto</th>
+                      <th>Estoque Atual</th>
+                      <th>Qtd Solicitada</th>
+                      <th>Impacto no Estoque</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td class="td-mono">LQZ-001</td>
+                      <td class="td-bold">Hydra Limão 500ml</td>
+                      <td>870 un.</td>
+                      <td class="td-bold" style="color:var(--success);">+24</td>
+                      <td><span class="impact impact-ok">🟢 894 un. — OK</span></td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+
+              <div style="margin-top:20px;padding-top:18px;border-top:1px solid var(--border);">
+                <div style="font-size:12.5px;font-weight:700;margin-bottom:8px;">Comentário do Aprovador <span style="color:var(--text-muted);font-weight:400;">(opcional)</span></div>
+                <textarea class="form-control" placeholder="Adicione um comentário ou condição para aprovação..." style="margin-bottom:16px;"></textarea>
+                <div class="flex-row flex-end">
+                  <button class="btn btn-danger">✕ Rejeitar Solicitação</button>
+                  <button class="btn btn-success" style="background:var(--success);border-color:var(--success);">✓ Aprovar Solicitação</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ═══════ 5. ESTOQUE BASE DE PRODUTOS ═══════ -->
+      <div id="screen-estoque" class="screen">
+        <div class="page-header">
+          <div>
+            <div class="page-title">Base de Produtos</div>
+            <div class="page-subtitle">Saldo atual de todos os SKUs por centro de distribuição</div>
+          </div>
+          <div class="flex-row">
+            <button class="btn btn-ghost btn-sm">📊 Exportar CSV</button>
+            <button class="btn btn-ghost btn-sm">📄 Exportar Excel</button>
+            <button class="btn btn-primary btn-sm">+ Novo Produto</button>
+          </div>
+        </div>
+
+        <div class="search-bar-wrap">
+          <div class="search-input-wrap">
+            <span class="search-icon">🔍</span>
+            <input class="search-input" type="text" placeholder="Buscar SKU ou produto...">
+          </div>
+          <select class="filter-select">
+            <option>Todas as categorias</option>
+            <option>Hydra</option>
+            <option>Isotônico</option>
+            <option>Energy</option>
+          </select>
+          <select class="filter-select">
+            <option>Todos os CDs</option>
+            <option>Escritório</option>
+            <option>Rio</option>
+            <option>Galpão Eventos</option>
+            <option>Galpão Varejo</option>
+            <option>Rio Varejo</option>
+          </select>
+          <button class="btn btn-ghost btn-sm">⚠️ Apenas estoque baixo</button>
+        </div>
+
+        <div class="card">
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>SKU</th>
+                  <th>Produto</th>
+                  <th>Escritório</th>
+                  <th>Rio</th>
+                  <th>Galp. Eventos</th>
+                  <th>Galp. Varejo</th>
+                  <th>Rio Varejo</th>
+                  <th>Total</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td class="td-mono">LQZ-001</td>
+                  <td class="td-bold">Hydra Limão 500ml</td>
+                  <td>312</td>
+                  <td>240</td>
+                  <td>88</td>
+                  <td>870</td>
+                  <td style="color:var(--error);font-weight:700;">12</td>
+                  <td class="td-bold">1.522</td>
+                </tr>
+                <tr class="row-warn">
+                  <td class="td-mono">LQZ-002</td>
+                  <td class="td-bold">Hydra Morango 350ml <span style="font-size:11px;color:var(--warning);">⚠</span></td>
+                  <td>200</td>
+                  <td>160</td>
+                  <td>42</td>
+                  <td>310</td>
+                  <td style="color:var(--error);font-weight:700;">18</td>
+                  <td class="td-bold">730</td>
+                </tr>
+                <tr>
+                  <td class="td-mono">LQZ-003</td>
+                  <td class="td-bold">Hydra Maracujá 500ml</td>
+                  <td>180</td>
+                  <td>220</td>
+                  <td>120</td>
+                  <td>440</td>
+                  <td>95</td>
+                  <td class="td-bold">1.055</td>
+                </tr>
+                <tr>
+                  <td class="td-mono">LQZ-004</td>
+                  <td class="td-bold">Isotônico Caju 500ml</td>
+                  <td>95</td>
+                  <td>150</td>
+                  <td style="color:var(--warning);font-weight:700;">42</td>
+                  <td>280</td>
+                  <td>75</td>
+                  <td class="td-bold">642</td>
+                </tr>
+                <tr>
+                  <td class="td-mono">LQZ-005</td>
+                  <td class="td-bold">Isotônico Laranja 350ml</td>
+                  <td>420</td>
+                  <td>380</td>
+                  <td>200</td>
+                  <td>600</td>
+                  <td>160</td>
+                  <td class="td-bold">1.760</td>
+                </tr>
+                <tr>
+                  <td class="td-mono">LQZ-006</td>
+                  <td class="td-bold">Energy Limão 269ml</td>
+                  <td>88</td>
+                  <td>120</td>
+                  <td>55</td>
+                  <td>200</td>
+                  <td>40</td>
+                  <td class="td-bold">503</td>
+                </tr>
+                <tr class="row-warn">
+                  <td class="td-mono">LQZ-007</td>
+                  <td class="td-bold">Hydra Uva 500ml <span style="font-size:11px;color:var(--warning);">⚠</span></td>
+                  <td>30</td>
+                  <td>28</td>
+                  <td style="color:var(--error);font-weight:700;">8</td>
+                  <td>55</td>
+                  <td>22</td>
+                  <td class="td-bold">143</td>
+                </tr>
+                <tr>
+                  <td class="td-mono">LQZ-008</td>
+                  <td class="td-bold">Água Coco 330ml</td>
+                  <td>500</td>
+                  <td>450</td>
+                  <td>180</td>
+                  <td>720</td>
+                  <td>200</td>
+                  <td class="td-bold">2.050</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <div style="padding:14px 22px;border-top:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;">
+            <span style="font-size:12.5px;color:var(--text-muted);">8 de 47 produtos · <span style="color:var(--error);font-weight:600;">3 com estoque crítico</span></span>
+            <div class="pagination">
+              <button class="page-btn">‹</button>
+              <button class="page-btn active">1</button>
+              <button class="page-btn">2</button>
+              <button class="page-btn">3</button>
+              <button class="page-btn">›</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ═══════ 6. EVENTOS ═══════ -->
+      <div id="screen-eventos" class="screen">
+        <div class="page-header">
+          <div>
+            <div class="page-title">Eventos</div>
+            <div class="page-subtitle">Gestão de eventos e distribuição de produtos</div>
+          </div>
+          <div class="flex-row">
+            <button class="btn btn-primary btn-sm">+ Novo Evento</button>
+          </div>
+        </div>
+
+        <div class="filter-tabs" style="margin-bottom:24px;">
+          <button class="tab-btn active">Todos</button>
+          <button class="tab-btn" onclick="setActiveTab(this)">Ativos <span class="tab-count">2</span></button>
+          <button class="tab-btn" onclick="setActiveTab(this)">Futuros <span class="tab-count">1</span></button>
+          <button class="tab-btn" onclick="setActiveTab(this)">Encerrados <span class="tab-count">1</span></button>
+        </div>
+
+        <div class="event-grid">
+          <!-- Card 1 — Ativo -->
+          <div class="event-card">
+            <div class="event-card-banner banner-ativo"></div>
+            <div class="event-card-body">
+              <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px;">
+                <div class="event-name">💪 FitExpo SP 2026</div>
+                <span class="badge badge-ativo">ATIVO</span>
+              </div>
+              <div class="event-meta">
+                📅 28/03 – 02/04/2026<br>
+                📍 CD: Galpão Eventos<br>
+                👤 Responsável: Nathália Ferraz<br>
+                📦 12 SKUs vinculados
+              </div>
+            </div>
+            <div class="event-card-footer">
+              <div class="event-footer-stat">1.200 un. alocadas</div>
+              <button class="btn btn-sm btn-primary">Ver Detalhes</button>
+            </div>
+          </div>
+
+          <!-- Card 2 — Ativo -->
+          <div class="event-card">
+            <div class="event-card-banner banner-ativo"></div>
+            <div class="event-card-body">
+              <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px;">
+                <div class="event-name">🏃 Maratona SP</div>
+                <span class="badge badge-ativo">ATIVO</span>
+              </div>
+              <div class="event-meta">
+                📅 30/03 – 31/03/2026<br>
+                📍 CD: Rio Varejo<br>
+                👤 Responsável: Guilherme Almeida<br>
+                📦 8 SKUs vinculados
+              </div>
+            </div>
+            <div class="event-card-footer">
+              <div class="event-footer-stat">640 un. alocadas</div>
+              <button class="btn btn-sm btn-primary">Ver Detalhes</button>
+            </div>
+          </div>
+
+          <!-- Card 3 — Futuro -->
+          <div class="event-card">
+            <div class="event-card-banner banner-futuro"></div>
+            <div class="event-card-body">
+              <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px;">
+                <div class="event-name">🎵 Rock in Rio 2026</div>
+                <span class="badge badge-futuro">FUTURO</span>
+              </div>
+              <div class="event-meta">
+                📅 05/04 – 12/04/2026<br>
+                📍 CD: Galpão Eventos<br>
+                👤 Responsável: Isabela Rocha<br>
+                📦 18 SKUs vinculados
+              </div>
+            </div>
+            <div class="event-card-footer">
+              <div class="event-footer-stat">3.600 un. planejadas</div>
+              <button class="btn btn-sm btn-secondary">Ver Detalhes</button>
+            </div>
+          </div>
+
+          <!-- Card 4 — Encerrado -->
+          <div class="event-card" style="opacity:0.7;">
+            <div class="event-card-banner banner-encerrado"></div>
+            <div class="event-card-body">
+              <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px;">
+                <div class="event-name">⚽ Final Paulistão</div>
+                <span class="badge badge-encerrado">ENCERRADO</span>
+              </div>
+              <div class="event-meta">
+                📅 15/03 – 16/03/2026<br>
+                📍 CD: Galpão Varejo<br>
+                👤 Responsável: Nathália Ferraz<br>
+                📦 6 SKUs vinculados
+              </div>
+            </div>
+            <div class="event-card-footer">
+              <div class="event-footer-stat">480 un. movimentadas</div>
+              <button class="btn btn-sm btn-ghost">Ver Relatório</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ═══════ 7. FINANCEIRO / NF ═══════ -->
+      <div id="screen-financeiro" class="screen">
+        <div class="page-header">
+          <div>
+            <div class="page-title">Financeiro / NF</div>
+            <div class="page-subtitle">Notas fiscais e valores movimentados por evento</div>
+          </div>
+          <div class="flex-row">
+            <button class="btn btn-ghost btn-sm">⬇ Exportar</button>
+            <button class="btn btn-primary btn-sm">+ Registrar NF</button>
+          </div>
+        </div>
+
+        <div class="fin-summary">
+          <div class="fin-card">
+            <div class="fin-card-label">💰 Total Movimentado</div>
+            <div class="fin-card-value">R$ 84.320</div>
+            <div class="fin-card-note">↑ +12% vs. mês anterior</div>
+          </div>
+          <div class="fin-card">
+            <div class="fin-card-label">📄 NFs Pendentes</div>
+            <div class="fin-card-value" style="color:var(--error);">2</div>
+            <div class="fin-card-note">Aguardando processamento</div>
+          </div>
+          <div class="fin-card">
+            <div class="fin-card-label">✅ NFs Processadas</div>
+            <div class="fin-card-value" style="color:var(--success);">6</div>
+            <div class="fin-card-note">Este mês · 8 no total</div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">Notas Fiscais por Evento</span>
+            <select class="filter-select" style="font-size:12px;padding:5px 10px;">
+              <option>Março 2026</option>
+              <option>Fevereiro 2026</option>
+              <option>Janeiro 2026</option>
+            </select>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Evento</th>
+                  <th>Período</th>
+                  <th>Itens</th>
+                  <th>Valor Total</th>
+                  <th>Responsável</th>
+                  <th>Status NF</th>
+                  <th>Ações</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td class="td-bold">💪 FitExpo SP 2026</td>
+                  <td class="td-muted">28/03 – 02/04</td>
+                  <td>12 SKUs</td>
+                  <td class="td-bold">R$ 28.400</td>
+                  <td>Nathália Ferraz</td>
+                  <td><span class="badge badge-pendente">PENDENTE</span></td>
+                  <td><div class="flex-row"><button class="btn btn-sm btn-ghost">📄 Gerar PDF</button><button class="btn btn-sm btn-primary">Processar</button></div></td>
+                </tr>
+                <tr>
+                  <td class="td-bold">🏃 Maratona SP</td>
+                  <td class="td-muted">30/03 – 31/03</td>
+                  <td>8 SKUs</td>
+                  <td class="td-bold">R$ 12.960</td>
+                  <td>Guilherme Almeida</td>
+                  <td><span class="badge badge-pendente">PENDENTE</span></td>
+                  <td><div class="flex-row"><button class="btn btn-sm btn-ghost">📄 Gerar PDF</button><button class="btn btn-sm btn-primary">Processar</button></div></td>
+                </tr>
+                <tr>
+                  <td class="td-bold">⚽ Final Paulistão</td>
+                  <td class="td-muted">15/03 – 16/03</td>
+                  <td>6 SKUs</td>
+                  <td class="td-bold">R$ 9.840</td>
+                  <td>Nathália Ferraz</td>
+                  <td><span class="badge badge-processado">PROCESSADO</span></td>
+                  <td><div class="flex-row"><button class="btn btn-sm btn-ghost">📄 Gerar PDF</button></div></td>
+                </tr>
+                <tr>
+                  <td class="td-bold">🎾 Open Tênis SP</td>
+                  <td class="td-muted">10/03 – 14/03</td>
+                  <td>9 SKUs</td>
+                  <td class="td-bold">R$ 33.120</td>
+                  <td>Isabela Rocha</td>
+                  <td><span class="badge badge-processado">PROCESSADO</span></td>
+                  <td><div class="flex-row"><button class="btn btn-sm btn-ghost">📄 Gerar PDF</button></div></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <div style="padding:14px 22px;border-top:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;">
+            <span style="font-size:12.5px;color:var(--text-muted);">4 registros · Total: R$ 84.320</span>
+            <div class="flex-row">
+              <button class="btn btn-ghost btn-sm">📊 Relatório Consolidado</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ═══════ 8. HISTÓRICO ═══════ -->
+      <div id="screen-historico" class="screen">
+        <div class="page-header">
+          <div>
+            <div class="page-title">Histórico de Movimentações</div>
+            <div class="page-subtitle">Log completo de todas as movimentações de estoque</div>
+          </div>
+          <div class="flex-row">
+            <button class="btn btn-ghost btn-sm">📊 Exportar CSV</button>
+            <button class="btn btn-ghost btn-sm">📄 Exportar Excel</button>
+          </div>
+        </div>
+
+        <div class="filter-row">
+          <div class="search-input-wrap">
+            <span class="search-icon">🔍</span>
+            <input class="search-input" type="text" placeholder="Buscar SKU, produto, evento...">
+          </div>
+          <input class="date-input" type="date" value="2026-03-01" title="De">
+          <span style="font-size:13px;color:var(--text-muted);">até</span>
+          <input class="date-input" type="date" value="2026-03-31" title="Até">
+          <select class="filter-select">
+            <option>Todos os CDs</option>
+            <option>Escritório</option>
+            <option>Rio</option>
+            <option>Galpão Eventos</option>
+            <option>Galpão Varejo</option>
+            <option>Rio Varejo</option>
+          </select>
+          <select class="filter-select">
+            <option>Entrada e Saída</option>
+            <option>Entrada</option>
+            <option>Saída</option>
+          </select>
+          <button class="btn btn-secondary btn-sm">Filtrar</button>
+        </div>
+
+        <div class="card">
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Timestamp</th>
+                  <th>SKU</th>
+                  <th>Produto</th>
+                  <th>Qtd</th>
+                  <th>Tipo</th>
+                  <th>CD</th>
+                  <th>Evento</th>
+                  <th>Solicitante</th>
+                  <th>Status Log.</th>
+                  <th>Status Fin.</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td class="td-muted" style="white-space:nowrap;">31/03 14:45</td>
+                  <td class="td-mono">LQZ-001</td>
+                  <td>Hydra Limão 500ml</td>
+                  <td style="color:var(--success);font-weight:700;">+144</td>
+                  <td><span class="badge badge-entrada">ENTRADA</span></td>
+                  <td>Escritório</td>
+                  <td class="td-muted">—</td>
+                  <td>Nathália Ferraz</td>
+                  <td><span class="badge badge-aprovado">CONF.</span></td>
+                  <td><span class="badge badge-processado">PROC.</span></td>
+                </tr>
+                <tr>
+                  <td class="td-muted" style="white-space:nowrap;">31/03 13:20</td>
+                  <td class="td-mono">LQZ-004</td>
+                  <td>Isotônico Caju 500ml</td>
+                  <td style="color:var(--error);font-weight:700;">−60</td>
+                  <td><span class="badge badge-saida">SAÍDA</span></td>
+                  <td>Galp. Eventos</td>
+                  <td>FitExpo SP</td>
+                  <td>Guilherme Almeida</td>
+                  <td><span class="badge badge-aprovado">CONF.</span></td>
+                  <td><span class="badge badge-pendente">PEND.</span></td>
+                </tr>
+                <tr>
+                  <td class="td-muted" style="white-space:nowrap;">31/03 11:05</td>
+                  <td class="td-mono">LQZ-002</td>
+                  <td>Hydra Morango 350ml</td>
+                  <td style="color:var(--success);font-weight:700;">+96</td>
+                  <td><span class="badge badge-entrada">ENTRADA</span></td>
+                  <td>Rio</td>
+                  <td class="td-muted">—</td>
+                  <td>Guilherme Almeida</td>
+                  <td><span class="badge badge-aprovado">CONF.</span></td>
+                  <td><span class="badge badge-processado">PROC.</span></td>
+                </tr>
+                <tr>
+                  <td class="td-muted" style="white-space:nowrap;">30/03 17:30</td>
+                  <td class="td-mono">LQZ-005</td>
+                  <td>Isotônico Laranja 350ml</td>
+                  <td style="color:var(--error);font-weight:700;">−120</td>
+                  <td><span class="badge badge-saida">SAÍDA</span></td>
+                  <td>Galp. Varejo</td>
+                  <td>FitExpo SP</td>
+                  <td>Isabela Rocha</td>
+                  <td><span class="badge badge-aprovado">CONF.</span></td>
+                  <td><span class="badge badge-pendente">PEND.</span></td>
+                </tr>
+                <tr>
+                  <td class="td-muted" style="white-space:nowrap;">30/03 14:00</td>
+                  <td class="td-mono">LQZ-003</td>
+                  <td>Hydra Maracujá 500ml</td>
+                  <td style="color:var(--success);font-weight:700;">+200</td>
+                  <td><span class="badge badge-entrada">ENTRADA</span></td>
+                  <td>Galp. Varejo</td>
+                  <td class="td-muted">—</td>
+                  <td>Nathália Ferraz</td>
+                  <td><span class="badge badge-aprovado">CONF.</span></td>
+                  <td><span class="badge badge-processado">PROC.</span></td>
+                </tr>
+                <tr>
+                  <td class="td-muted" style="white-space:nowrap;">30/03 09:20</td>
+                  <td class="td-mono">LQZ-008</td>
+                  <td>Água Coco 330ml</td>
+                  <td style="color:var(--error);font-weight:700;">−80</td>
+                  <td><span class="badge badge-saida">SAÍDA</span></td>
+                  <td>Rio Varejo</td>
+                  <td>Maratona SP</td>
+                  <td>Isabela Rocha</td>
+                  <td><span class="badge badge-aprovado">CONF.</span></td>
+                  <td><span class="badge badge-pendente">PEND.</span></td>
+                </tr>
+                <tr>
+                  <td class="td-muted" style="white-space:nowrap;">29/03 16:45</td>
+                  <td class="td-mono">LQZ-006</td>
+                  <td>Energy Limão 269ml</td>
+                  <td style="color:var(--success);font-weight:700;">+288</td>
+                  <td><span class="badge badge-entrada">ENTRADA</span></td>
+                  <td>Escritório</td>
+                  <td class="td-muted">—</td>
+                  <td>Guilherme Almeida</td>
+                  <td><span class="badge badge-aprovado">CONF.</span></td>
+                  <td><span class="badge badge-processado">PROC.</span></td>
+                </tr>
+                <tr>
+                  <td class="td-muted" style="white-space:nowrap;">29/03 11:00</td>
+                  <td class="td-mono">LQZ-001</td>
+                  <td>Hydra Limão 500ml</td>
+                  <td style="color:var(--error);font-weight:700;">−240</td>
+                  <td><span class="badge badge-saida">SAÍDA</span></td>
+                  <td>Galp. Eventos</td>
+                  <td>Rock in Rio 2026</td>
+                  <td>Isabela Rocha</td>
+                  <td><span class="badge badge-aprovado">CONF.</span></td>
+                  <td><span class="badge badge-processado">PROC.</span></td>
+                </tr>
+                <tr>
+                  <td class="td-muted" style="white-space:nowrap;">28/03 15:30</td>
+                  <td class="td-mono">LQZ-007</td>
+                  <td>Hydra Uva 500ml</td>
+                  <td style="color:var(--success);font-weight:700;">+48</td>
+                  <td><span class="badge badge-entrada">ENTRADA</span></td>
+                  <td>Rio</td>
+                  <td class="td-muted">—</td>
+                  <td>Nathália Ferraz</td>
+                  <td><span class="badge badge-aprovado">CONF.</span></td>
+                  <td><span class="badge badge-processado">PROC.</span></td>
+                </tr>
+                <tr>
+                  <td class="td-muted" style="white-space:nowrap;">28/03 10:15</td>
+                  <td class="td-mono">LQZ-002</td>
+                  <td>Hydra Morango 350ml</td>
+                  <td style="color:var(--error);font-weight:700;">−36</td>
+                  <td><span class="badge badge-saida">SAÍDA</span></td>
+                  <td>Galp. Varejo</td>
+                  <td>FitExpo SP</td>
+                  <td>Guilherme Almeida</td>
+                  <td><span class="badge badge-aprovado">CONF.</span></td>
+                  <td><span class="badge badge-pendente">PEND.</span></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <div style="padding:14px 22px;border-top:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;">
+            <span style="font-size:12.5px;color:var(--text-muted);">Mostrando 10 de 128 movimentações · Março/2026</span>
+            <div class="pagination">
+              <button class="page-btn">‹</button>
+              <button class="page-btn active">1</button>
+              <button class="page-btn">2</button>
+              <button class="page-btn">3</button>
+              <span class="page-info">...</span>
+              <button class="page-btn">13</button>
+              <button class="page-btn">›</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- /content -->
+  </div><!-- /main -->
+</div><!-- /app -->
+
+<script>
+  const screenTitles = {
+    'dashboard': 'Dashboard',
+    'nova-solicitacao': 'Nova Solicitação',
+    'solicitacoes': 'Solicitações',
+    'aprovacao': 'Aprovação',
+    'estoque': 'Base de Produtos',
+    'eventos': 'Eventos',
+    'financeiro': 'Financeiro / NF',
+    'historico': 'Histórico de Movimentações',
+  };
+
+  function showScreen(id, navEl) {
+    // Hide all screens
+    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+    // Show target
+    const target = document.getElementById('screen-' + id);
+    if (target) target.classList.add('active');
+
+    // Update nav active state
+    document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+    if (navEl) navEl.classList.add('active');
+
+    // Update topbar title
+    document.getElementById('topbar-title').textContent = screenTitles[id] || id;
+    document.getElementById('topbar-crumb').textContent = '';
+  }
+
+  function setActiveTab(el) {
+    const parent = el.closest('.filter-tabs');
+    parent.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    el.classList.add('active');
+  }
+
+  // Radio options click behavior
+  document.querySelectorAll('.radio-option').forEach(opt => {
+    opt.addEventListener('click', function() {
+      const group = this.closest('.radio-group');
+      group.querySelectorAll('.radio-option').forEach(o => o.classList.remove('selected'));
+      this.classList.add('selected');
+    });
+  });
+
+  // Split view item click
+  document.querySelectorAll('.split-item').forEach(item => {
+    item.addEventListener('click', function() {
+      document.querySelectorAll('.split-item').forEach(i => i.classList.remove('active'));
+      this.classList.add('active');
+    });
+  });
+</script>
+</body>
+</html>

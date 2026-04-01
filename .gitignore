@@ -1,0 +1,11 @@
+# Next.js
+app/.next/
+app/node_modules/
+app/.env.local
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
