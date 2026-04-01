@@ -5,7 +5,7 @@ import { useState, useEffect } from 'react'
 const NAV_ITEMS = [
   { label: 'Dashboard',        icon: '📊', href: '/',                  key: 'dashboard' },
   { label: 'Estoque',          icon: '📦', href: '/estoque',           key: 'estoque' },
-  { label: 'Aprovação',        icon: '✅', href: '/aprovacao',         key: 'aprovacao', showBadge: true },
+  { label: 'Aprovação',        icon: '✅', href: '/aprovacao',         key: 'aprovacao', showBadge: true, adminOnly: true },
   { label: 'Nova Solicitação', icon: '➕', href: '/solicitacoes/nova', key: 'solicitacoes-nova' },
   { label: 'Solicitações',     icon: '📋', href: '/solicitacoes',      key: 'solicitacoes' },
   { label: 'Eventos',          icon: '🎉', href: '/eventos',           key: 'eventos' },
@@ -16,15 +16,24 @@ const NAV_ITEMS = [
 export default function Layout({ children, currentPage, title }) {
   const router = useRouter()
   const [pendingCount, setPendingCount] = useState(0)
+  const [user, setUser] = useState(null)
 
   useEffect(() => {
+    fetch('/api/auth/me')
+      .then(r => r.json())
+      .then(d => { if (d.success) setUser(d.user) })
+      .catch(() => {})
+
     fetch('/api/solicitacoes?status=PENDENTE')
       .then(r => r.json())
-      .then(d => {
-        if (d.success) setPendingCount(d.data.length)
-      })
+      .then(d => { if (d.success) setPendingCount(d.data.length) })
       .catch(() => {})
   }, [])
+
+  async function handleLogout() {
+    await fetch('/api/auth/logout', { method: 'POST' })
+    router.replace('/login')
+  }
 
   const today = new Date().toLocaleDateString('pt-BR', {
     weekday: 'long',
@@ -40,6 +49,8 @@ export default function Layout({ children, currentPage, title }) {
     return router.pathname.startsWith(item.href)
   }
 
+  const visibleNav = NAV_ITEMS.filter(item => !item.adminOnly || user?.role === 'admin')
+
   return (
     <div>
       {/* Sidebar */}
@@ -52,7 +63,7 @@ export default function Layout({ children, currentPage, title }) {
         </div>
 
         <nav className="sidebar-nav">
-          {NAV_ITEMS.map(item => (
+          {visibleNav.map(item => (
             <Link
               key={item.key}
               href={item.href}
@@ -68,8 +79,21 @@ export default function Layout({ children, currentPage, title }) {
         </nav>
 
         <div className="sidebar-footer">
-          <span className="sidebar-user">Guilherme</span>
-          <span className="sidebar-signout">Sair</span>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div className="sidebar-user" style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              {user?.nome || '—'}
+            </div>
+            {user?.role === 'admin' && (
+              <div style={{ fontSize: 10, color: '#9BDB20', fontWeight: 700, marginTop: 1 }}>Admin</div>
+            )}
+          </div>
+          <button
+            onClick={handleLogout}
+            className="sidebar-signout"
+            style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
+          >
+            Sair
+          </button>
         </div>
       </aside>
 
