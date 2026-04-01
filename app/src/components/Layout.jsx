@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import { useRouter } from 'next/router'
 import { useState, useEffect } from 'react'
+import { useSession, signOut } from 'next-auth/react'
 
 const NAV_ITEMS = [
   { label: 'Dashboard',        icon: '📊', href: '/',                  key: 'dashboard' },
@@ -15,31 +16,19 @@ const NAV_ITEMS = [
 
 export default function Layout({ children, currentPage, title }) {
   const router = useRouter()
+  const { data: session } = useSession()
+  const user = session?.user
   const [pendingCount, setPendingCount] = useState(0)
-  const [user, setUser] = useState(null)
 
   useEffect(() => {
-    fetch('/api/auth/me')
-      .then(r => r.json())
-      .then(d => { if (d.success) setUser(d.user) })
-      .catch(() => {})
-
     fetch('/api/solicitacoes?status=PENDENTE')
       .then(r => r.json())
       .then(d => { if (d.success) setPendingCount(d.data.length) })
       .catch(() => {})
   }, [])
 
-  async function handleLogout() {
-    await fetch('/api/auth/logout', { method: 'POST' })
-    router.replace('/login')
-  }
-
   const today = new Date().toLocaleDateString('pt-BR', {
-    weekday: 'long',
-    day: '2-digit',
-    month: 'long',
-    year: 'numeric',
+    weekday: 'long', day: '2-digit', month: 'long', year: 'numeric',
   })
 
   const pageTitle = title || NAV_ITEMS.find(i => i.key === currentPage)?.label || 'LIQUIDZ'
@@ -53,7 +42,6 @@ export default function Layout({ children, currentPage, title }) {
 
   return (
     <div>
-      {/* Sidebar */}
       <aside className="sidebar">
         <div className="sidebar-logo">
           <span className="sidebar-logo-text">
@@ -81,14 +69,14 @@ export default function Layout({ children, currentPage, title }) {
         <div className="sidebar-footer">
           <div style={{ flex: 1, minWidth: 0 }}>
             <div className="sidebar-user" style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-              {user?.nome || '—'}
+              {user?.name || user?.email?.split('@')[0] || '—'}
             </div>
             {user?.role === 'admin' && (
               <div style={{ fontSize: 10, color: '#9BDB20', fontWeight: 700, marginTop: 1 }}>Admin</div>
             )}
           </div>
           <button
-            onClick={handleLogout}
+            onClick={() => signOut({ callbackUrl: '/api/auth/signin' })}
             className="sidebar-signout"
             style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
           >
@@ -97,7 +85,6 @@ export default function Layout({ children, currentPage, title }) {
         </div>
       </aside>
 
-      {/* Main content */}
       <div className="main-content">
         <div className="topbar">
           <div className="topbar-left">

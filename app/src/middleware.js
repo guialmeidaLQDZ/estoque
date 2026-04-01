@@ -1,40 +1,24 @@
+import { withAuth } from 'next-auth/middleware'
 import { NextResponse } from 'next/server'
-import { jwtVerify } from 'jose'
 
-const PUBLIC = ['/login', '/api/auth/']
-const ADMIN_ONLY = ['/aprovacao']
+export default withAuth(
+  function middleware(req) {
+    const { pathname } = req.nextUrl
+    const token = req.nextauth.token
 
-export async function middleware(request) {
-  const { pathname } = request.nextUrl
-
-  // Public paths — no auth needed
-  if (PUBLIC.some(p => pathname.startsWith(p))) return NextResponse.next()
-  // Next.js internals
-  if (pathname.startsWith('/_next') || pathname === '/favicon.ico') return NextResponse.next()
-
-  const token = request.cookies.get('lqdz_sess')?.value
-
-  if (!token) {
-    return NextResponse.redirect(new URL('/login', request.url))
-  }
-
-  try {
-    const secret = new TextEncoder().encode(process.env.AUTH_SECRET || 'liquidz-secret-fallback')
-    const { payload } = await jwtVerify(token, secret)
-
-    // Aprovação is admin-only
-    if (ADMIN_ONLY.some(p => pathname.startsWith(p)) && payload.role !== 'admin') {
-      return NextResponse.redirect(new URL('/', request.url))
+    if (pathname.startsWith('/aprovacao') && token?.role !== 'admin') {
+      return NextResponse.redirect(new URL('/', req.url))
     }
 
     return NextResponse.next()
-  } catch {
-    const res = NextResponse.redirect(new URL('/login', request.url))
-    res.cookies.delete('lqdz_sess')
-    return res
+  },
+  {
+    callbacks: {
+      authorized: ({ token }) => !!token,
+    },
   }
-}
+)
 
 export const config = {
-  matcher: ['/((?!_next/static|_next/image|favicon.ico).*)'],
+  matcher: ['/((?!_next/static|_next/image|favicon.ico|api/auth|acesso-negado).*)'],
 }
